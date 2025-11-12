@@ -1,3 +1,4 @@
+# %%
 import polars as pl
 import pathlib
 from rich.console import Console
@@ -5,6 +6,7 @@ from rich.console import Console
 console = Console()
 
 root = pathlib.Path.cwd()
+print(root)
 ft_all = pl.read_csv(root / "data/finetuning_results_all.csv")
 ft_mean = pl.read_csv(root / "data/finetuning_results_mean.csv")
 
@@ -13,6 +15,7 @@ console.print(f"Number of Finetuned Basins: {basins.shape[0]}", style="bold red"
 
 basins_per_country = basins["country"].value_counts()
 
+# %%
 console.print(basins_per_country)
 
 
@@ -23,3 +26,11 @@ console.print(f"=> 8*152={ft_all.shape[0]:,} Datapoints")
 # print(ft_all.describe())
 # print(ft_all["basin"].value_counts())
 # print(ft_mean[["country", "gauge_name", "basin"]])
+
+# %%
+import matplotlib.pyplot as plt
+
+plt.plot(ft_mean["val_origin"], ft_mean["val_delta"])
+plt.show()
+
+# %%
