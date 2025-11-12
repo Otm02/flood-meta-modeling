@@ -3,13 +3,20 @@ import polars as pl
 import numpy as np
 import pathlib
 from rich.console import Console
+from rich.table import Table
 from sklearn import linear_model
-from sklearn.metrics import mean_squared_error, r2_score, mean_absolute_error
+from sklearn.metrics import (
+    mean_squared_error,
+    r2_score,
+    mean_absolute_error,
+    root_mean_squared_error,
+)
 
 console = Console()
+use_mean = True
 ft_mean_dir = pathlib.Path("data/finetuning_results_mean.csv")
 ft_all_dir = pathlib.Path("data/finetuning_results_mean.csv")
-ft = pl.read_csv(ft_all_dir)
+ft = pl.read_csv(ft_mean_dir if use_mean else ft_all_dir)
 console.print(f"Columns: {len(ft.columns)}")
 # %%
 np.random.seed(42)
@@ -23,7 +30,7 @@ test_countries = unique_countries[split_idx:]
 console.print(f"{train_countries=}")
 console.print(f"{test_countries=}")
 
-feature_column_names = ["aridity"]  # ["area"]  # ['area', "aridity"]
+feature_column_names = ["area", "aridity"]
 train_df = ft.filter(pl.col("country").is_in(train_countries))
 train_features = train_df[feature_column_names].to_numpy()
 train_target = train_df["test_delta"].to_numpy()
@@ -37,10 +44,33 @@ console.print(f"{test_features.shape=}")
 
 # %%
 reg = linear_model.LinearRegression().fit(train_features, train_target)
-model_preds = reg.predict(test_features)
+train_model_preds = reg.predict(train_features)
+test_model_preds = reg.predict(test_features)
 
-console.print(f"Mean squared error: {mean_squared_error(model_preds, test_target):.3f}")
-console.print(
-    f"Mean absolute error: {mean_absolute_error(model_preds, test_target):.3f}"
+results_table = Table(title="Results")
+results_table.add_column("Metric")
+results_table.add_column("Train")
+results_table.add_column("Test")
+results_table.add_row(
+    "MSE",
+    f"{mean_squared_error(train_model_preds, train_target):.4f}",
+    f"{mean_squared_error(test_model_preds, test_target):.4f}",
 )
-console.print(f"Coefficient of determination: {r2_score(model_preds, test_target):.3f}")
+results_table.add_row(
+    "RMSE",
+    f"{root_mean_squared_error(train_model_preds, train_target):.4f}",
+    f"{root_mean_squared_error(test_model_preds, test_target):.4f}",
+)
+
+results_table.add_row(
+    "MAE",
+    f"{mean_absolute_error(train_model_preds, train_target):.4f}",
+    f"{mean_absolute_error(test_model_preds, test_target):.4f}",
+)
+
+results_table.add_row(
+    "R2",
+    f"{r2_score(train_model_preds, train_target):.4f}",
+    f"{r2_score(test_model_preds, test_target):.4f}",
+)
+console.print(results_table)
