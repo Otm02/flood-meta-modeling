@@ -2,6 +2,7 @@
 import polars as pl
 import pathlib
 from rich.console import Console
+from rich.table import Table
 
 console = Console()
 ft_all_dir = pathlib.Path("data/finetuning_results_all.csv")
@@ -23,7 +24,6 @@ basins_per_country = basins["country"].value_counts()
 # %%
 console.print(basins_per_country)
 
-
 console.print("What is 'finetuning_results_all'?")
 console.print("-> 8 Random instances of the Model")
 console.print("-> 152 River Basins")
@@ -33,9 +33,20 @@ console.print(f"=> 8*152={ft_all.shape[0]:,} Datapoints")
 # print(ft_mean[["country", "gauge_name", "basin"]])
 
 # %%
-import matplotlib.pyplot as plt
-
-plt.plot(ft_mean["val_origin"], ft_mean["val_delta"])
-plt.show()
-
+table1 = Table(title="Table 1 from Paper")
+table1.add_column("Model")
+table1.add_column("NSE (mean)")
+table1.add_column("NSE (median)")
+table1.add_row(
+    "Pre-Train",
+    f"{ft_all['test_origin'].mean():.3f}",
+    f"{ft_all['test_origin'].median():.3f}",
+)
+table1.add_row(
+    "Finetuned",
+    f"{(ft_all['test_origin'] + ft_all['test_delta']).mean():.3f}",
+    f"{(ft_all['test_origin'] + ft_all['test_delta']).median():.3f}",
+)
+# where are the KGE (mean) and KGE (median)?
+console.print(table1)
 # %%
