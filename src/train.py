@@ -30,7 +30,7 @@ test_countries = unique_countries[split_idx:]
 console.print(f"{train_countries=}")
 console.print(f"{test_countries=}")
 
-feature_column_names = ["area", "aridity"]
+feature_column_names = ["test_origin", "area", "aridity"]
 train_df = ft.filter(pl.col("country").is_in(train_countries))
 train_features = train_df[feature_column_names].to_numpy()
 train_target = train_df["test_delta"].to_numpy()
@@ -44,6 +44,7 @@ console.print(f"{test_features.shape=}")
 
 # %%
 reg = linear_model.LinearRegression().fit(train_features, train_target)
+# reg = linear_model.Ridge(alpha=0.4, random_state=42).fit(train_features, train_target)
 train_model_preds = reg.predict(train_features)
 test_model_preds = reg.predict(test_features)
 
