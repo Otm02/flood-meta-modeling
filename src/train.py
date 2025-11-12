@@ -22,7 +22,7 @@ test_countries = unique_countries[split_idx:]
 console.print(f"{train_countries=}")
 console.print(f"{test_countries=}")
 
-feature_column_names = ["test_origin", "area", "aridity"]
+feature_column_names = ["area", "aridity"]
 train_df = ft_mean.filter(pl.col("country").is_in(train_countries))
 train_features = train_df[feature_column_names].to_numpy()
 train_target = train_df["test_delta"].to_numpy()
