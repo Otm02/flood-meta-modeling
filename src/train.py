@@ -19,8 +19,8 @@ ft_all_dir = pathlib.Path("data/finetuning_results_mean.csv")
 ft = pl.read_csv(ft_mean_dir if use_mean else ft_all_dir)
 console.print(f"Columns: {len(ft.columns)}")
 # %%
-np.random.seed(42)
-unique_countries = ft["country"].unique().to_numpy()
+np.random.seed(42)  
+unique_countries = np.sort(ft["country"].unique())
 np.random.shuffle(unique_countries)
 
 # split countries: 70/30
@@ -41,6 +41,8 @@ test_target = test_df["test_delta"].to_numpy()
 console.print(f"{train_features.shape=}")
 console.print(f"{test_features.shape=}")
 
+console.print(f"train target mean: {train_target.mean()}")
+console.print(f"test target mean: {test_target.mean()}")
 
 # %%
 reg = linear_model.LinearRegression().fit(train_features, train_target)
