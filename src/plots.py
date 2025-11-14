@@ -17,13 +17,19 @@ ft_all = pl.read_csv(ft_all_dir)
 ft_mean = pl.read_csv(ft_mean_dir)
 # %%
 
-plt.scatter(ft_all["area"], ft_all["test_delta"])
+# plt.scatter(ft_all["area"], ft_all["test_delta"])
+# plt.xlabel("area")
+# plt.xlabel("test_delta")
+# plt.show()
+# # %%
+
+# # plt.boxplot(ft_mean["test_origin"])
+# plt.boxplot(ft_all["test_delta"])
+# # plt.scatter(ft_mean["test_origin"], ft_mean["test_delta"])
+# plt.show()
+print((ft_mean['gauge_lat'] > 0).sum())
+print((ft_mean['gauge_lat'] < 0).sum())
+plt.scatter(ft_mean["gauge_lon"], ft_mean["gauge_lat"])
 plt.xlabel("area")
 plt.xlabel("test_delta")
-plt.show()
-# %%
-
-# plt.boxplot(ft_mean["test_origin"])
-plt.boxplot(ft_all["test_delta"])
-# plt.scatter(ft_mean["test_origin"], ft_mean["test_delta"])
 plt.show()
