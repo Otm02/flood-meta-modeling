@@ -13,34 +13,49 @@ ft = pl.read_csv(ft_mean_dir if use_mean else ft_all_dir)
 console.print(f"Number of Columns: {len(ft.columns)}", style="red")
 
 # %%
-# Drop spacial + model related data
-drop_cols = [
-    # Spacial Features:
+
+
+def flatten_dict(dd):
+    fl = []
+    for k, v in dd.items():
+        fl.extend(v)
+    return fl
+
+
+meata_data_features = defaultdict(list)
+meata_data_features["spatial"] = [
     "gauge_name",
     "country",
     "gauge_lat",
     "gauge_lon",
-    # Model Features:
-    "",
     "basin",
+]
+meata_data_features["km"] = [
+    "area",
+]
+
+meata_data_features["model"] = [
+    "",
     "val_delta",
     "test_origin",
     "val_origin",
     "test_delta",  # prediction output
 ]
-console.print(ft[drop_cols].head())
-
-# %%
-ft = ft.drop(drop_cols)
-console.print(f"Num of Cols: {len(ft.columns)}")
-# %%
+meta_data_df = ft[flatten_dict(meata_data_features)]
 
 """
 Note: Paper stated "Dataset limited to basins range of [100km^2, 2000km^2)"
     min value here is 93.5 (is it in km^2?)
 """
 
-console.log(f"Area [100km^2, 2000km^2): {ft['area'].describe()}")
+console.log(f"Area [100km^2, 2000km^2): {meta_data_df['area'].describe()}")
+
+# %%
+
+console.print(f"Feature Set Columns: {len(ft.columns)}")
+ft = ft.drop(meta_data_df.columns)
+console.print(f"Feature Set without Metadata: {len(ft.columns)}")
+
 
 # %%
 _ = """
@@ -164,13 +179,6 @@ anthropogenic_features = defaultdict(list)
 era5_land_features = defaultdict(list)
 
 
-def flatten_dict(dd):
-    fl = []
-    for k, v in dd.items():
-        fl.extend(v)
-    return fl
-
-
 for col in ft.columns:
     if "p_mean" in col or "pet_mean" in col:
         era5_land_features["mean"].append(col)
@@ -275,54 +283,30 @@ for col in ft.columns:
     elif "ari_ix_sav" in col:
         climate_features["index"].append(col)
 
-
-hydrology_df = ft[flatten_dict(hydrology_featuers)]
-physiography_df = ft[flatten_dict(physiography_features)]
-climate_df = ft[flatten_dict(climate_features)]
-land_cover_df = ft[flatten_dict(land_cover_features)]
-soil_geology_df = ft[flatten_dict(soil_geology_features)]
-anthropogenic_df = ft[flatten_dict(anthropogenic_features)]
-era5_land_df = ft[flatten_dict(era5_land_features)]
-
-total_hydrology_features = len(hydrology_df.columns)
-total_physiography_features = len(physiography_df.columns)
-total_climate_features = len(climate_df.columns)
-total_land_cover_features = len(land_cover_df.columns)
-total_soil_geology_features = len(soil_geology_df.columns)
-total_anthropogenic_features = len(anthropogenic_df.columns)
-total_era5_land_features = len(era5_land_df.columns)
-
-print(f"{total_hydrology_features=}")
-print(f"{total_physiography_features=}")
-print(f"{total_climate_features=}")
-print(f"{total_land_cover_features=}")
-print(f"{total_soil_geology_features=}")
-print(f"{total_anthropogenic_features=}")
-print(f"{total_era5_land_features=}")
-total_hydroatlas_features = sum(
-    [
-        total_hydrology_features,
-        total_physiography_features,
-        total_climate_features,
-        total_land_cover_features,
-        total_soil_geology_features,
-        total_anthropogenic_features,
-        total_era5_land_features,
-    ]
-)
+caravan_feature_set = [
+    ("hydrology", ft[flatten_dict(hydrology_featuers)]),
+    ("physiography", ft[flatten_dict(physiography_features)]),
+    ("climate", ft[flatten_dict(climate_features)]),
+    ("land_cover", ft[flatten_dict(land_cover_features)]),
+    ("soil_geology", ft[flatten_dict(soil_geology_features)]),
+    ("anthropogenic", ft[flatten_dict(anthropogenic_features)]),
+    ("era5_land", ft[flatten_dict(era5_land_features)]),
+]
+total_caravan_cols = 0
+for name, df in caravan_feature_set:
+    df_col_len = len(df.columns)
+    total_caravan_cols += df_col_len
+    print(f"{name}: {df_col_len}")
+console.print(f"Total Caravan Features: {total_caravan_cols}", style="red")
 console.print(
-    f"Features Left: {len(ft.columns) - total_hydroatlas_features}", style="red"
+    f"Expected Features Left: {len(ft.columns) - total_caravan_cols}", style="red"
 )
 
 # %%
-ft = ft.drop(
-    hydrology_df.columns
-    + physiography_df.columns
-    + climate_df.columns
-    + land_cover_df.columns
-    + soil_geology_df.columns
-    + anthropogenic_df.columns
-)
+dropping_cols: list[str] = []
+for _, df in caravan_feature_set:
+    dropping_cols += df.columns
+ft = ft.drop(dropping_cols)
 
 # %%
 console.print(f"remaining cols: {len(ft.columns)}")
