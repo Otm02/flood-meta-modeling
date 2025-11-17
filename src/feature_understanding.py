@@ -50,12 +50,6 @@ Note: Paper stated "Dataset limited to basins range of [100km^2, 2000km^2)"
 
 console.log(f"Area [100km^2, 2000km^2): {meta_data_df['area'].describe()}")
 
-# %%
-
-console.print(f"Feature Set Columns: {len(ft.columns)}")
-ft = ft.drop(meta_data_df.columns)
-console.print(f"Feature Set without Metadata: {len(ft.columns)}")
-
 
 # %%
 _ = """
@@ -204,11 +198,15 @@ for col in ft.columns:
         or "fec_cl" in col
     ):
         land_cover_features["spatial_classes"].append(col)
+    elif "glc_pc_s" in col or "wet_pc_s" in col or "pnv_pc_s" in col:
+        if "wet_pc_sg1" in col or "wet_pc_sg2" in col:
+            land_cover_features["spatial_percent"].append(col)
+        else:
+            land_cover_features["many_spatial_percent"].append(col)
+
     elif (
         "for_pc" in col
-        or "glc_pc_s" in col
         or "pnv_pc_s" in col
-        or "wet_pc_s" in col
         or "crp_pc" in col
         or "pst_pc" in col
         or "ire_pc" in col
@@ -229,7 +227,7 @@ for col in ft.columns:
         if "yr" in col:
             soil_geology_features["yearly_percent"].append(col)
         else:
-            soil_geology_features["montly_percent"].append(col)
+            soil_geology_features["monthly_percent"].append(col)
     elif "urb_pc" in col:
         anthropogenic_features["percent"].append(col)
     elif "nli_ix_sav" in col or "hft_ix_s" in col or "hdi_ix_sav" in col:
@@ -264,7 +262,7 @@ for col in ft.columns:
         # print(col)
         climate_features["spatial_classes"].append(col)
 
-    # Montly Mean climate features
+    # Monthly Mean climate features
     elif (
         "tmp_dc_s" in col
         or "pet_mm_s" in col
@@ -274,8 +272,8 @@ for col in ft.columns:
         or "snw_pc_s" in col
     ):
         if "_syr" not in col:
-            # Montly mean climate features
-            climate_features["montly"].append(col)
+            # Monthly mean climate features
+            climate_features["monthly"].append(col)
         elif "_syr" in col:
             # Yearly mean climate features
             climate_features["yearly"].append(col)
@@ -302,12 +300,43 @@ console.print(
     f"Expected Features Left: {len(ft.columns) - total_caravan_cols}", style="red"
 )
 
-# %%
 dropping_cols: list[str] = []
 for _, df in caravan_feature_set:
     dropping_cols += df.columns
-ft = ft.drop(dropping_cols)
+
+dropping_cols = dropping_cols + meta_data_df.columns
+un_accounted_for_cols = set(ft.columns) - set(dropping_cols)
+print(un_accounted_for_cols)
 
 # %%
-console.print(f"remaining cols: {len(ft.columns)}")
-console.print(ft.head())
+usable_features_for_training = []
+usable_features_for_training += meata_data_features["km"]
+
+for k, v in hydrology_featuers.items():
+    usable_features_for_training += v
+
+for k, v in physiography_features.items():
+    usable_features_for_training += v
+
+for k, v in climate_features.items():
+    if k != "monthly":
+        usable_features_for_training += v
+for k, v in land_cover_features.items():
+    if k != "many_spatial_percent":
+        usable_features_for_training += v
+
+for k, v in soil_geology_features.items():
+    if k != "montly_percent":
+        usable_features_for_training += v
+
+for k, v in era5_land_features.items():
+    if k == "no_units":
+        usable_features_for_training += v
+
+
+# %%
+console.print(f"Usable Feature: {len(usable_features_for_training)}", style="red")
+console.print(f"Usable Feature: {usable_features_for_training}", style="red")
+
+# console.print(f"remaining cols: {len(ft.columns)}")
+# console.print(ft.head())
