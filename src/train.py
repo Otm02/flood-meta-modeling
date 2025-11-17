@@ -19,7 +19,7 @@ ft_all_dir = pathlib.Path("data/finetuning_results_mean.csv")
 ft = pl.read_csv(ft_mean_dir if use_mean else ft_all_dir)
 console.print(f"Columns: {len(ft.columns)}")
 
-np.random.seed(42)  
+np.random.seed(42)
 unique_countries = np.sort(ft["country"].unique())
 kf = KFold(n_splits=3, shuffle=True)
 
@@ -27,13 +27,15 @@ fold_counter = 0
 feature_column_names = ["area", "aridity", "pre_mm_syr", "dis_m3_pyr"]
 # Iterate through the folds
 for train_index, test_index in kf.split(unique_countries):
-    train_countries, test_countries = unique_countries[train_index], unique_countries[test_index]
+    train_countries, test_countries = (
+        unique_countries[train_index],
+        unique_countries[test_index],
+    )
 
     console.print(f"Fold number {fold_counter}")
     console.print(f"{train_countries=}")
     console.print(f"{test_countries=}")
 
-    
     train_df = ft.filter(pl.col("country").is_in(train_countries))
     train_features = train_df[feature_column_names].to_numpy()
     train_target = train_df["test_delta"].to_numpy()
@@ -81,9 +83,9 @@ for train_index, test_index in kf.split(unique_countries):
     console.print(results_table)
 
     fold_counter += 1
-    console.print(f"-"*80)
+    console.print("-" * 80)
 
-console.print(f"Train/Test Split on latitude")
+console.print("Train/Test Split on latitude")
 train_df = ft.filter(pl.col("gauge_lat") > 0)
 train_features = train_df[feature_column_names].to_numpy()
 train_target = train_df["test_delta"].to_numpy()

@@ -20,23 +20,44 @@ use_mean = True
 ft_mean_dir = pathlib.Path("data/finetuning_results_mean.csv")
 ft_all_dir = pathlib.Path("data/finetuning_results_mean.csv")
 ft = pl.read_csv(ft_mean_dir if use_mean else ft_all_dir)
-drop_cols = ['', 'basin', 'val_delta', 'test_origin', 'val_origin', 'gauge_name', 'country', 'gauge_lat', 'gauge_lon']
+drop_cols = [
+    "",
+    "basin",
+    "val_delta",
+    "test_origin",
+    "val_origin",
+    "gauge_name",
+    "country",
+    "gauge_lat",
+    "gauge_lon",
+]
 ft = ft.drop(drop_cols)
 
 y = ft["test_delta"].to_numpy()
 X = ft.drop(["test_delta"])
 
-categorical_cols = ['clz_cl_smj', 'clz_cl_smj', 'glc_cl_smj', 'pnv_cl_smj', 'wet_cl_smj', 'tbi_cl_smj', 'tec_cl_smj', 'fmh_cl_smj', 'fec_cl_smj', 'lit_cl_smj']
+categorical_cols = [
+    "clz_cl_smj",
+    "clz_cl_smj",
+    "glc_cl_smj",
+    "pnv_cl_smj",
+    "wet_cl_smj",
+    "tbi_cl_smj",
+    "tec_cl_smj",
+    "fmh_cl_smj",
+    "fec_cl_smj",
+    "lit_cl_smj",
+]
 X = X.to_dummies(columns=categorical_cols)
 
 numeric_cols = [
-    col for col in X.columns
+    col
+    for col in X.columns
     if not any(col.startswith(prefix + "_") for prefix in categorical_cols)
 ]
-X = X.with_columns([
-    (pl.col(numeric_cols) - pl.col(numeric_cols).mean()) /
-    pl.col(numeric_cols).std()
-])
+X = X.with_columns(
+    [(pl.col(numeric_cols) - pl.col(numeric_cols).mean()) / pl.col(numeric_cols).std()]
+)
 
 drop_cols = []
 for col in X.columns:
@@ -53,11 +74,9 @@ X = X.to_numpy()
 X_baseline = ft["area", "aridity"].to_numpy()
 
 reg = linear_model.LinearRegression()
-sfs = SequentialFeatureSelector(reg,
-                                n_features_to_select=15,
-                                direction='forward',
-                                scoring='r2',
-                                cv=5)
+sfs = SequentialFeatureSelector(
+    reg, n_features_to_select=15, direction="forward", scoring="r2", cv=5
+)
 sfs.fit(X, y)
 X_selected = sfs.transform(X)
 selected_names = feature_names[sfs.get_support()]
