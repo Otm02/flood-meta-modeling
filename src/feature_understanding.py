@@ -10,8 +10,8 @@ use_mean = True
 ft_mean_dir = pathlib.Path("data/finetuning_results_mean.csv")
 ft_all_dir = pathlib.Path("data/finetuning_results_mean.csv")
 ft = pl.read_csv(ft_mean_dir if use_mean else ft_all_dir)
-console.print(f"Num of Cols: {len(ft.columns)}")
-console.print(ft.columns[:20])
+console.print(f"Number of Columns: {len(ft.columns)}", style="red")
+
 # %%
 # Drop spacial + model related data
 drop_cols = [
@@ -35,24 +35,15 @@ ft = ft.drop(drop_cols)
 console.print(f"Num of Cols: {len(ft.columns)}")
 # %%
 
-categorical_cols = [
-    "clz_cl_smj",
-    "glc_cl_smj",
-    "pnv_cl_smj",
-    "wet_cl_smj",
-    "tbi_cl_smj",
-    "tec_cl_smj",
-    "fmh_cl_smj",
-    "fec_cl_smj",
-    "lit_cl_smj",
-]
-console.print(ft[categorical_cols])
-# %%
+"""
+Note: Paper stated "Dataset limited to basins range of [100km^2, 2000km^2)"
+    min value here is 93.5 (is it in km^2?)
+"""
 
 console.log(f"Area [100km^2, 2000km^2): {ft['area'].describe()}")
 
 # %%
-"""
+_ = """
 # ERA5-Land meteorological variables
 Feature (ERA5-Land variable name) Aggregation Unit
 Precipitation (total_precipitation) Daily sum mm/day
@@ -73,6 +64,7 @@ Soil water volume 7–28 cm (volumetric_soil_water_layer_2) Daily min/max and me
 Soil water volume 28–100 cm (volumetric_soil_water_layer_3) Daily min/max and mean m3/m3
 Soil water volume 100–289 cm (volumetric_soil_water_layer_4) Daily min/max and mean m3/m3
 """
+
 
 # %%
 
@@ -147,6 +139,21 @@ Road density (rdd_mk_sav) spatial mean m/km2
 Human footprint (hft_ix_s[93,09]) spatial mean for 1993 & 2009 index value (x100)
 Gross domestic product (gdp_ud_sav) spatial mean USD ($)
 Human development index (hdi_ix_sav) spatial mean index value (x1000)
+
+
+## Climate attributes derived from ERA5-Land time series:
+Attribute Description Unit
+p_mean Mean daily precipitation mm/day
+pet_mean Mean daily potential evaporation mm/day
+aridity Aridity index, ratio of mean PET and mean precipitation
+frac_snow Fraction of precipitation falling as snow
+moisture_index Mean annual moisture index in range [−1, 1], where −1 indicates water-limited conditions and 1 energy-limited conditions
+seasonality Moisture index seasonality in range [0, 2], where 0 indicates no changes in the water/energy
+budget throughout the year and 2 indicates a change from fully arid to fully humid.
+high_prec_freq Frequency of high precipitation days, where precipitation ≥5 times mean daily precipitation —
+high_prec_dur Average duration of high precipitation events (number of consecutive days where precipitation ≥5 times mean daily precipitation days
+low_prec_freq Frequency of low precipitation days, where precipitation <1 mmday-1 —
+low_prec_dur Average duration of low precipitation events (number of consecutive days where precipitation <1 mmday-1 days
 """
 hydrology_featuers = defaultdict(list)
 physiography_features = defaultdict(list)
@@ -154,6 +161,7 @@ climate_features = defaultdict(list)
 land_cover_features = defaultdict(list)
 soil_geology_features = defaultdict(list)
 anthropogenic_features = defaultdict(list)
+era5_land_features = defaultdict(list)
 
 
 def flatten_dict(dd):
@@ -164,7 +172,21 @@ def flatten_dict(dd):
 
 
 for col in ft.columns:
-    if (
+    if "p_mean" in col or "pet_mean" in col:
+        era5_land_features["mean"].append(col)
+    elif "high_prec_dur" in col or "low_prec_dur" in col:
+        era5_land_features["days"].append(col)
+    elif (
+        "aridity" in col
+        or "frac_snow" in col
+        or "high_prec_freq" in col
+        or "low_prec_freq" in col
+    ):
+        era5_land_features["no_units"].append(col)
+    elif "moisture_index" in col or "seasonality" in col:
+        era5_land_features["index"].append(col)
+
+    elif (
         "glc_cl" in col
         or "pnv_cl" in col
         or "wet_cl" in col
@@ -174,8 +196,27 @@ for col in ft.columns:
         or "fec_cl" in col
     ):
         land_cover_features["spatial_classes"].append(col)
+    elif (
+        "for_pc" in col
+        or "glc_pc_s" in col
+        or "pnv_pc_s" in col
+        or "wet_pc_s" in col
+        or "crp_pc" in col
+        or "pst_pc" in col
+        or "ire_pc" in col
+        or "prm_pc" in col
+        or "pac_pc" in col
+    ):
+        land_cover_features["spatial_percent"].append(col)
+
     elif "cly_pc" in col or "slt_pc" in col or "snd_pc" in col or "kar_pc" in col:
         soil_geology_features["percent"].append(col)
+    elif "lit_cl_smj" in col:
+        soil_geology_features["spatial_classes"].append(col)
+    elif "ero_kh_sav" in col:
+        soil_geology_features["erosion"].append(col)
+    elif "soc_th_sav" in col:
+        soil_geology_features["tonnes"].append(col)
     elif "swc_pc_s" in col:
         if "yr" in col:
             soil_geology_features["yearly_percent"].append(col)
@@ -183,6 +224,16 @@ for col in ft.columns:
             soil_geology_features["montly_percent"].append(col)
     elif "urb_pc" in col:
         anthropogenic_features["percent"].append(col)
+    elif "nli_ix_sav" in col or "hft_ix_s" in col or "hdi_ix_sav" in col:
+        anthropogenic_features["index"].append(col)
+    elif (
+        "pop_ct_usu" in col
+        or "ppd_pk_sav" in col
+        or "rdd_mk_sav" in col
+        or "gdp_ud_sav" in col
+    ):
+        anthropogenic_features["population"].append(col)
+
     elif "dis_" in col:
         hydrology_featuers["yearly"].append(col)
     elif "run_mm" in col or "gwt_cm" in col:
@@ -207,7 +258,7 @@ for col in ft.columns:
 
     # Montly Mean climate features
     elif (
-        "tm_dc_s" in col
+        "tmp_dc_s" in col
         or "pet_mm_s" in col
         or "pre_mm_s" in col
         or "cmi_ix_s" in col
@@ -231,6 +282,7 @@ climate_df = ft[flatten_dict(climate_features)]
 land_cover_df = ft[flatten_dict(land_cover_features)]
 soil_geology_df = ft[flatten_dict(soil_geology_features)]
 anthropogenic_df = ft[flatten_dict(anthropogenic_features)]
+era5_land_df = ft[flatten_dict(era5_land_features)]
 
 total_hydrology_features = len(hydrology_df.columns)
 total_physiography_features = len(physiography_df.columns)
@@ -238,6 +290,7 @@ total_climate_features = len(climate_df.columns)
 total_land_cover_features = len(land_cover_df.columns)
 total_soil_geology_features = len(soil_geology_df.columns)
 total_anthropogenic_features = len(anthropogenic_df.columns)
+total_era5_land_features = len(era5_land_df.columns)
 
 print(f"{total_hydrology_features=}")
 print(f"{total_physiography_features=}")
@@ -245,6 +298,7 @@ print(f"{total_climate_features=}")
 print(f"{total_land_cover_features=}")
 print(f"{total_soil_geology_features=}")
 print(f"{total_anthropogenic_features=}")
+print(f"{total_era5_land_features=}")
 total_hydroatlas_features = sum(
     [
         total_hydrology_features,
@@ -253,6 +307,7 @@ total_hydroatlas_features = sum(
         total_land_cover_features,
         total_soil_geology_features,
         total_anthropogenic_features,
+        total_era5_land_features,
     ]
 )
 console.print(
@@ -260,10 +315,14 @@ console.print(
 )
 
 # %%
-ft = ft.drop(hydrology_df.columns)
-
-ft = ft.drop(physiography_df.columns)
-ft = ft.drop(climate_df.columns)
+ft = ft.drop(
+    hydrology_df.columns
+    + physiography_df.columns
+    + climate_df.columns
+    + land_cover_df.columns
+    + soil_geology_df.columns
+    + anthropogenic_df.columns
+)
 
 # %%
 console.print(f"remaining cols: {len(ft.columns)}")
