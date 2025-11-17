@@ -337,6 +337,3 @@ for k, v in era5_land_features.items():
 # %%
 console.print(f"Usable Feature: {len(usable_features_for_training)}", style="red")
 console.print(f"Usable Feature: {usable_features_for_training}", style="red")
-
-# console.print(f"remaining cols: {len(ft.columns)}")
-# console.print(ft.head())
