@@ -1,17 +1,16 @@
-import polars as pl
-import numpy as np
+# %%
 import pathlib
+
+import numpy as np
+import polars as pl
 from rich.console import Console
 from rich.table import Table
 from sklearn import linear_model
-from sklearn.model_selection import KFold
-from sklearn.preprocessing import OneHotEncoder
 from sklearn.feature_selection import SequentialFeatureSelector
-
 from sklearn.metrics import (
+    mean_absolute_error,
     mean_squared_error,
     r2_score,
-    mean_absolute_error,
     root_mean_squared_error,
 )
 
@@ -20,6 +19,8 @@ use_mean = True
 ft_mean_dir = pathlib.Path("data/finetuning_results_mean.csv")
 ft_all_dir = pathlib.Path("data/finetuning_results_mean.csv")
 ft = pl.read_csv(ft_mean_dir if use_mean else ft_all_dir)
+
+# Drop spacial + model related data
 drop_cols = [
     "",
     "basin",
